@@ -170,14 +170,14 @@ namespace CFDPrototype.util
                     }
 
                     cells[i,j] = new Cell2D(i, j);
-                    u[i, j] = (float)((1f - Math.Pow(Math.Cos(Math.PI * i / width), 4)) * (1f - Math.Pow(Math.Cos(Math.PI * j / height), 4)) * Math.Sin(Math.PI * j / (0.5f*height)));
-                    v[i, j] = 0;
+                   // u[i, j] = (float)((1f - Math.Pow(Math.Cos(Math.PI * i / width), 4)) * (1f - Math.Pow(Math.Cos(Math.PI * j / height), 4)) * Math.Sin(Math.PI * j / (0.5f*height)));
+                   // v[i, j] = 0;
                     //u[i, j] = (float)(Math.Pow(Math.Sin(Math.PI * i / width),25)* Math.Pow(Math.Sin(Math.PI * j / height), 25)) * 2f;
                     //v[i, j] = (float)(Math.Pow(Math.Sin(Math.PI * i / width), 25) * Math.Pow(Math.Sin(Math.PI * j / height), 25)) * 2f;
-                    u[i, j] = (i - 0.5f * width) * (i - 0.5f * width) + (3*(j - 0.5f * height)) * (3*(j - 0.5f * height)) < Math.Pow((1.0f / 4.0f) * width, 2) ? 0.0f : 3.0f;
+                    u[i, j] = Math.Pow((i+0.15*width) - 0.5f * width, 2) + Math.Pow(3*(j - 0.5f * height), 2) < Math.Pow((1.0 / 6.0f) * width, 2) ? 0.0f : 50;
                     v[i, j] = 0;
                     d[i,j] = 1.293f;
-                    e[i,j] = 0.718f * 30f + 0.5f*((float)Math.Pow(u[i,j], 2) + (float)Math.Pow(v[i,j], 2));
+                    e[i, j] = 0.718f * 100f;// + 0.5f*((float)Math.Pow(u[i,j], 2) + (float)Math.Pow(v[i,j], 2));
                     S[i, j] = (float)i / (float)width;
                 }
             }
@@ -194,7 +194,7 @@ namespace CFDPrototype.util
                     field[i,j].v = v[i, j];
                     field[i,j].E = e[i, j];
                     field[i,j].S = S[i, j];
-                    if ((i - 0.5f * width) * (i - 0.5f * width) + (3 * (j - 0.5f * height)) * (3 * (j - 0.5f * height)) < Math.Pow((1.0f / 4.0f) * width, 2)) {
+                    if (Math.Pow((i + 0.15 * width) - 0.5f * width, 2) + Math.Pow(3 * (j - 0.5f * height), 2) < Math.Pow((1.0f /  6.0f) * width, 2)) {
                         mesh[i, j] = 1;
                     }
                 }

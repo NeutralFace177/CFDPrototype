@@ -69,12 +69,29 @@ public class Window : GameWindow
         }
     }
 
+    struct DataGroup4
+    {
+        float R;
+        float L;
+        float U;
+        float D;
+
+        public DataGroup4(float r, float l, float u, float d)
+        {
+            R = r;
+            L = l;
+            U = u;
+            D = d;
+        }
+    }
+
     enum SimState
     {
         Run,
         Paused,
         Step
     }
+
 
     enum Processor
     {
@@ -139,7 +156,7 @@ public class Window : GameWindow
         Console.WriteLine(sigma.ToString());
         Console.WriteLine(sigma.SwapColumn(1, 3));
         textureData = new float[width * height*3];
-        gWidth = 600;
+        gWidth = 800;
         gHeight = (int)(gWidth*0.6f);
         grid = new Grid(gWidth, gHeight);
         compShaderDataIn = new Field2D[gWidth, gHeight];
@@ -156,7 +173,7 @@ public class Window : GameWindow
         zuh = 0;
 
         //shader sim parameters
-        ssInfo = new ShaderSimInfo(0.075f, 0.075f, 0.0001f, Vector2.Zero, width, height);
+        ssInfo = new ShaderSimInfo(0.075f*0.5f,0.075f*0.5f, 0.00005f, Vector2.Zero, width, height);
 
         for (int i = 0; i < gWidth; i++)
         {
@@ -340,8 +357,6 @@ public class Window : GameWindow
                     GL.UnmapBuffer(BufferTarget.ShaderStorageBuffer);
                 }
             }
-            int block_index = GL.GetProgramResourceIndex(computeShader.handle, ProgramInterface.ShaderStorageBlock, "shader_data");
-            GL.ShaderStorageBlockBinding(computeShader.handle, block_index, 2);
             computeShader.Use();
             GL.DispatchCompute(gWidth, gHeight, 1);
             GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
@@ -356,15 +371,11 @@ public class Window : GameWindow
                     {
                         System.Buffer.MemoryCopy(ptr1.ToPointer(), dataPtr, compShaderDataOut.Length * sizeof(Field2D), compShaderDataOut.Length * sizeof(Field2D));
                         GL.UnmapBuffer(BufferTarget.ShaderStorageBuffer);
-                        int block_index1 = GL.GetProgramResourceIndex(computeShader.handle, ProgramInterface.ShaderStorageBlock, "out_data");
-                        GL.ShaderStorageBlockBinding(computeShader.handle, block_index1, 3);
 
                         GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssbo3);
                         IntPtr ptr5 = GL.MapBuffer(BufferTarget.ShaderStorageBuffer, BufferAccess.WriteOnly);
                         System.Buffer.MemoryCopy(dataPtr2, ptr5.ToPointer(), compShaderDataOut.Length * sizeof(Field2D), compShaderDataOut.Length * sizeof(Field2D));
                         GL.UnmapBuffer(BufferTarget.ShaderStorageBuffer);
-                        int block_index4 = GL.GetProgramResourceIndex(computeShader.handle, ProgramInterface.ShaderStorageBlock, "prevData");
-                        GL.ShaderStorageBlockBinding(computeShader.handle, block_index4, 6);
                         System.Buffer.MemoryCopy(dataPtr, dataPtr2, compShaderDataOut.Length * sizeof(Field2D), compShaderDataOut.Length * sizeof(Field2D));
                     }
                 }
@@ -382,8 +393,6 @@ public class Window : GameWindow
                         GL.UnmapBuffer(BufferTarget.ShaderStorageBuffer);
                     }
                 }
-                int block_index3 = GL.GetProgramResourceIndex(computeShader.handle, ProgramInterface.ShaderStorageBlock, "mesh_data");
-                GL.ShaderStorageBlockBinding(computeShader.handle, block_index3, 4);
                 updateMesh = false;
             }
 
@@ -399,8 +408,6 @@ public class Window : GameWindow
                     }
                 }
                 GL.UnmapBuffer(BufferTarget.ShaderStorageBuffer);
-                int block_index2 = GL.GetProgramResourceIndex(computeShader.handle, ProgramInterface.ShaderStorageBlock, "out_debug");
-                GL.ShaderStorageBlockBinding(computeShader.handle, block_index2, 5);
             }
         }
         
@@ -412,7 +419,6 @@ public class Window : GameWindow
 
         SwapBuffers();
     }
-
     protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
     {
         base.OnFramebufferResize(e);
