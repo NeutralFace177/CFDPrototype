@@ -177,7 +177,7 @@ namespace CFDPrototype.util
                     u[i, j] = Math.Pow((i+0.15*width) - 0.5f * width, 2) + Math.Pow(3*(j - 0.5f * height), 2) < Math.Pow((1.0 / 6.0f) * width, 2) ? 0.0f : 50;
                     v[i, j] = 0;
                     d[i,j] = 1.293f;
-                    e[i, j] = 0.718f * 100f;// + 0.5f*((float)Math.Pow(u[i,j], 2) + (float)Math.Pow(v[i,j], 2));
+                    e[i, j] = 0.718f * 100f + 0.5f*((float)Math.Pow(u[i,j], 2) + (float)Math.Pow(v[i,j], 2));
                     S[i, j] = (float)i / (float)width;
                 }
             }

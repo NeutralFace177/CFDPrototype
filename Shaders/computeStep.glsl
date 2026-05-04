@@ -97,9 +97,28 @@ layout (std430, binding = 6) buffer prevData {
     Fields2D[] prevFields;
 };
 
+layout (std430, binding = 7) buffer FH {
+    //y faces are vertical, as y is normal to the face
+    Fields2D[] yFaceFlux;
+};
+
+layout (std430, binding = 8) buffer FV {
+    //x faces are vertical, as x is normal to the face
+    Fields2D[] xFaceFlux;
+};
+
 uint coordToIndex(int i, int j) {
     return i*gl_NumWorkGroups.y+j;
 }
+
+uint HFaceCoordToIndex(int i, int j) {
+    return i*((gl_NumWorkGroups.y+1))+j;
+}
+
+uint VFaceCoordToIndex(int i, int j) {
+    return i*(gl_NumWorkGroups.y)+j;
+}
+
 uint width = gl_NumWorkGroups.x;
 uint height = gl_NumWorkGroups.y;
 ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
@@ -472,6 +491,13 @@ float Scheme(int valId, int dim, bool forwards) {
     return WENO(valId,dim,forwards);
 }
 
+Fields2D faceFlux(int dim, int I, int J) {
+    if (dim == 0) {
+        return xFaceFlux[VFaceCoordToIndex(i+I,j+J)];
+    } else {
+        return yFaceFlux[HFaceCoordToIndex(i+I,j+J)];
+    }
+}
 
 void main() {
     DataGroupVec3 tensor = DataGroupVec3(calcStressTensor(0,0),calcStressTensor(1,0),calcStressTensor(-1,0),calcStressTensor(0,1),calcStressTensor(0,-1));
@@ -501,10 +527,6 @@ void main() {
     float qyYF = (q.center.y + q.up.y)/2.0;
     float qyYB = (q.center.y + q.down.y)/2.0;
 
-    float dXF = Scheme(0,0,true);
-    float dXB = Scheme(0,0,false);
-    float dYF = Scheme(0,1,true);
-    float dYB = Scheme(0,1,false);
 
     //Rhie Chow
     float RCXF = 0.5 * (dt/fields[index].d + dt/BC(0,1,0))*((p.right-p.center)/dx);
@@ -519,35 +541,17 @@ void main() {
   //  pYFC += -RCYF;
     //pYBC += -RCYB;
 
-    float uXF = Scheme(1,0,true) + rhieChowToggle * RCXF;
-    float uXB = Scheme(1,0,false) + rhieChowToggle * RCXB;
-    float uYF = Scheme(1,1,true) + rhieChowToggle * RCYF;
-    float uYB = Scheme(1,1,false) + rhieChowToggle * RCYB;
-
     float uXFC = CD(1,0,true);
     float uXBC = CD(1,0,false);
     float uYFC = CD(1,1,true);
     float uYBC = CD(1,1,false);
 
-    float vXF = Scheme(2,0,true) + rhieChowToggle * RCXF;
-    float vXB = Scheme(2,0,false) + rhieChowToggle * RCXB;
-    float vYF = Scheme(2,1,true) + rhieChowToggle * RCYF;
-    float vYB = Scheme(2,1,false) + rhieChowToggle * RCYB;
 
     float vXFC = CD(2,0,true);
     float vXBC = CD(2,0,false);
     float vYFC = CD(2,1,true);
     float vYBC = CD(2,1,false);
 
-    float EXF = Scheme(3,0,true);
-    float EXB = Scheme(3,0,false);
-    float EYF = Scheme(3,1,true);
-    float EYB = Scheme(3,1,false);
-
-    float SXF = Scheme(4,0,true);
-    float SXB = Scheme(4,0,false);
-    float SYF = Scheme(4,1,true);
-    float SYB = Scheme(4,1,false);
 
     float SDxXF = (SGrad.center.x + SGrad.right.x)/2.0;
     float SDxXB = (SGrad.center.x + SGrad.left.x)/2.0;
@@ -556,6 +560,12 @@ void main() {
 
     float pressureToggle = 1.0;
 
+    Fields2D XF = faceFlux(0,1,0);
+    Fields2D XB = faceFlux(0,0,0);
+    Fields2D YF = faceFlux(1,0,1);
+    Fields2D YB = faceFlux(1,0,0);
+
+
     if (mesh[index] == 1) {
         outFields[index].d = 0;
         outFields[index].u = 0;
@@ -563,37 +573,36 @@ void main() {
         outFields[index].E = 0;
         outFields[index].S = 0;
     } else if (true) {
-        outFields[index].d = fields[index].d + dt * (-(dXF * uXF - dXB * uXB) / dx - (dYF * vYF - dYB * vYB) / dy);
-        outFields[index].u = fields[index].u + dt * (-((dXF * uXF * uXF + pressureToggle * pXFC) - (dXB * uXB * uXB + pressureToggle * pXBC)) / dx -
-                            (dYF * uYF * vYF - dYB * uYB * vYB) / dy + (TxxXF - TxxXB) / dx + (TxyYF - TxyYB) / dy);
-        outFields[index].v = fields[index].v + dt * (-(dXF * uXF * vXF - dXB * uXB * vXB) / dx
-                            - ((dYF * vYF * vYF + pressureToggle * pYFC) - (dYB * vYB * vYB + pressureToggle * pYBC)) / dy 
-                            + (TxyXF - TxyXB) / dx + (TyyYF - TyyYB) / dy);
- //       outFields[index].E = fields[index].E + dt * (-(uXF * (dXF * EXF + pressureToggle * pXFC) - uXB * (dXB * EXB + pressureToggle * pXBC)) / dx
-   //                     - (vYF * (dYF * EYF + pressureToggle * pYFC) - vYB * (dYB * EYB + pressureToggle * pYBC)) / dy
-   //                     +((uXFC * TxxXF + vXFC * TxyXF - qxXF) - (uXBC * TxxXB + vXBC * TxyXB - qxXB)) / dx
-   //                     + ((uYFC * TxyYF + vYFC * TyyYF - qyYF) - (uYBC * TxyYB + vYBC * TyyYB - qyYB)) / dy);
-   outFields[index].E = fields[index].E;
-        outFields[index].S = fields[index].S + dt * (-(dXF * uXF * SXF - dXB * uXB * SXB) / dx - (dYF * vYF * SYF - dYB * vYB * SYB) / dy + 0.05*(SDxXF - SDxXB) / dx + 0.05*(SDyYF - SDyYB) / dy);
+        outFields[index].d = fields[index].d + dt * (-(XF.d - XB.d) / dx - (YF.d - YB.d) / dy);
+        outFields[index].u = fields[index].u + dt * (1.0 / fields[index].d) * (-(XF.u - XB.u) / dx -
+                            (YF.u - YB.u) / dy);// + (TxxXF - TxxXB) / dx + (TxyYF - TxyYB) / dy);
+        outFields[index].v = fields[index].v + dt * (1.0 / fields[index].d) * (-(XF.v - XB.v) / dx
+                            - (YF.v - YB.v) / dy 
+                            );//+ (TxyXF - TxyXB) / dx + (TyyYF - TyyYB) / dy);
+        outFields[index].E = fields[index].E + dt * (1.0 / fields[index].d) * (-(XF.E - XB.E) / dx
+                        - (YF.E - YB.E) / dy);
+                        //+((uXFC * TxxXF + vXFC * TxyXF - qxXF) - (uXBC * TxxXB + vXBC * TxyXB - qxXB)) / dx
+                        //+ ((uYFC * TxyYF + vYFC * TyyYF - qyYF) - (uYBC * TxyYB + vYBC * TyyYB - qyYB)) / dy);
+        outFields[index].S = fields[index].S + dt * (1.0 / fields[index].d) * (-(XF.S - XB.S) / dx - (YF.S - YB.S) / dy + 0.05*(SDxXF - SDxXB) / dx + 0.05*(SDyYF - SDyYB) / dy);
     } else {
-        outFields[index].d = (4.0*fields[index].d-prevFields[index].d + dt * (-(dXF * uXF - dXB * uXB) / dx - (dYF * vYF - dYB * vYB) / dy))/3.0;
-        outFields[index].u = (4.0*fields[index].u-prevFields[index].u + (1.0 / fields[index].d) * dt * (-((dXF * uXF * uXF + pressureToggle * pXFC) - (dXB * uXB * uXB + pressureToggle * pXBC)) / dx -
-                            (dYF * uYF * vYF - dYB * uYB * vYB) / dy + (TxxXF - TxxXB) / dx + (TxyYF - TxyYB) / dy))/3.0;
-        outFields[index].v = (4.0*fields[index].v-prevFields[index].v + (1.0 / fields[index].d) * dt * (-(dXF * uXF * vXF - dXB * uXB * vXB) / dx
-                            - ((dYF * vYF * vYF + pressureToggle * pYFC) - (dYB * vYB * vYB + pressureToggle * pYBC)) / dy 
-                            + (TxyXF - TxyXB) / dx + (TyyYF - TyyYB) / dy))/3.0;
-        outFields[index].E = (4.0*fields[index].E-prevFields[index].E + (1.0 / fields[index].d) * dt * (-(uXF * (dXF * EXF + pressureToggle * pXFC) - uXB * (dXB * EXB + pressureToggle * pXBC)) / dx
-                        - (vYF * (dYF * EYF + pressureToggle * pYFC) - vYB * (dYB * EYB + pressureToggle * pYBC)) / dy
-                        +((uXFC * TxxXF + vXFC * TxyXF - qxXF) - (uXBC * TxxXB + vXBC * TxyXB - qxXB)) / dx
-                        + ((uYFC * TxyYF + vYFC * TyyYF - qyYF) - (uYBC * TxyYB + vYBC * TyyYB - qyYB)) / dy))/3.0;
-        outFields[index].S = fields[index].S + (1.0 / fields[index].d) * dt * (-(dXF * uXF * SXF - dXB * uXB * SXB) / dx - (dYF * vYF * SYF - dYB * vYB * SYB) / dy + 0.05*(SDxXF - SDxXB) / dx + 0.05*(SDyYF - SDyYB) / dy);
+//        outFields[index].d = (4.0*fields[index].d-prevFields[index].d + dt * (-(dXF * uXF - dXB * uXB) / dx - (dYF * vYF - dYB * vYB) / dy))/3.0;
+//        outFields[index].u = (4.0*fields[index].u-prevFields[index].u + (1.0 / fields[index].d) * dt * (-((dXF * uXF * uXF + pressureToggle * pXFC) - (dXB * uXB * uXB + pressureToggle * pXBC)) / dx -
+ //                           (dYF * uYF * vYF - dYB * uYB * vYB) / dy + (TxxXF - TxxXB) / dx + (TxyYF - TxyYB) / dy))/3.0;
+   //     outFields[index].v = (4.0*fields[index].v-prevFields[index].v + (1.0 / fields[index].d) * dt * (-(dXF * uXF * vXF - dXB * uXB * vXB) / dx
+     //                       - ((dYF * vYF * vYF + pressureToggle * pYFC) - (dYB * vYB * vYB + pressureToggle * pYBC)) / dy 
+       //                     + (TxyXF - TxyXB) / dx + (TyyYF - TyyYB) / dy))/3.0;
+//        outFields[index].E = (4.0*fields[index].E-prevFields[index].E + (1.0 / fields[index].d) * dt * (-(uXF * (dXF * EXF + pressureToggle * pXFC) - uXB * (dXB * EXB + pressureToggle * pXBC)) / dx
+  //                      - (vYF * (dYF * EYF + pressureToggle * pYFC) - vYB * (dYB * EYB + pressureToggle * pYBC)) / dy
+    //                    +((uXFC * TxxXF + vXFC * TxyXF - qxXF) - (uXBC * TxxXB + vXBC * TxyXB - qxXB)) / dx
+      //                  + ((uYFC * TxyYF + vYFC * TyyYF - qyYF) - (uYBC * TxyYB + vYBC * TyyYB - qyYB)) / dy))/3.0;
+     //   outFields[index].S = fields[index].S + (1.0 / fields[index].d) * dt * (-(dXF * uXF * SXF - dXB * uXB * SXB) / dx - (dYF * vYF * SYF - dYB * vYB * SYB) / dy + 0.05*(SDxXF - SDxXB) / dx + 0.05*(SDyYF - SDyYB) / dy);
     }
 
-    vec3 SVIEW = hsv2rgb(vec3(fields[index].S*0.75,1.0,1.0));
+    vec3 SVIEW = hsv2rgb(vec3(outFields[index].S*0.75,1.0,1.0));
     vec3 sEdVIEW = vec3(sqrt(outFields[index].u*outFields[index].u+outFields[index].v*outFields[index].v)/60.0,outFields[index].E / 3000.0,outFields[index].d/2.5);
     vec3 velocityVIEW = vec3(abs(outFields[index].u/60.0),0,abs(outFields[index].v)/12.0);
-    vec3 uVIEW = vec3(fields[index].u/120.0,0,-fields[index].u/4.0);
-    vec3 vVIEW = vec3(fields[index].v/25.0,0,-fields[index].v/25.0);
+    vec3 uVIEW = vec3(outFields[index].u/120.0,0,-outFields[index].u/4.0);
+    vec3 vVIEW = vec3(outFields[index].v/25.0,0,-outFields[index].v/25.0);
 
    // debug[index].f2d = mesh[index];
 

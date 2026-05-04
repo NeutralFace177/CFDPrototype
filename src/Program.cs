@@ -112,6 +112,8 @@ public class Window : GameWindow
     int vertexArrayObject;
     private Shader shader;
     ComputeShader computeShader;
+    ComputeShader compFHShader;
+    ComputeShader compFVShader;
     int textureHandle;
     int compTextureHandle;
     ShaderSimInfo ssInfo;
@@ -125,6 +127,8 @@ public class Window : GameWindow
     int ssbo1;
     int ssbo2;
     int ssbo3;
+    int ssboFH;
+    int ssboFV;
     int ssboDebug;
     float[] textureData;
     Grid grid;
@@ -173,7 +177,7 @@ public class Window : GameWindow
         zuh = 0;
 
         //shader sim parameters
-        ssInfo = new ShaderSimInfo(0.075f*0.5f,0.075f*0.5f, 0.00005f, Vector2.Zero, width, height);
+        ssInfo = new ShaderSimInfo(0.75f,0.75f, 0.0001f, Vector2.Zero, width, height);
 
         for (int i = 0; i < gWidth; i++)
         {
@@ -205,13 +209,17 @@ public class Window : GameWindow
         base.OnLoad();
 
         shader = new Shader("Shaders/vert.glsl", "Shaders/frag.glsl");
-        computeShader = new ComputeShader("Shaders/compute.glsl");
+        compFHShader = new ComputeShader("Shaders/computeReconstructRiemannH.glsl");
+        compFVShader = new ComputeShader("Shaders/computeReconstructRiemannV.glsl");
+        computeShader = new ComputeShader("Shaders/computeStep.glsl");
         textureHandle = GL.GenTexture();
         compTextureHandle = GL.GenTexture();
         GL.CreateBuffers(1, out ssbo);
         GL.CreateBuffers(1, out ssbo1);
         GL.CreateBuffers(1, out ssbo2);
         GL.CreateBuffers(1, out ssbo3);
+        GL.CreateBuffers(1, out ssboFH);
+        GL.CreateBuffers(1, out ssboFV);
         if (debugSSBOEnabled)
         {
             GL.CreateBuffers(1, out ssboDebug);
@@ -259,6 +267,17 @@ public class Window : GameWindow
             }
         }
         GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 6, ssbo3);
+        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
+
+        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssboFH);
+        GL.BufferData(BufferTarget.ShaderStorageBuffer, sizeof(Field2D) * gWidth * (gHeight + 1), IntPtr.Zero, BufferUsageHint.DynamicRead);
+        GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 7, ssboFH);
+        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
+
+
+        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssboFV);
+        GL.BufferData(BufferTarget.ShaderStorageBuffer, sizeof(Field2D) * (gWidth+1) * gHeight, IntPtr.Zero, BufferUsageHint.DynamicRead);
+        GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 8, ssboFV);
         GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
 
         if (debugSSBOEnabled)
@@ -314,6 +333,8 @@ public class Window : GameWindow
         base.OnUnload();
         shader.Dispose();
         computeShader.Dispose();
+        compFHShader.Dispose();
+        compFVShader.Dispose();
     }
 
     protected override void OnRenderFrame(FrameEventArgs e)
@@ -357,6 +378,11 @@ public class Window : GameWindow
                     GL.UnmapBuffer(BufferTarget.ShaderStorageBuffer);
                 }
             }
+            compFVShader.Use();
+            GL.DispatchCompute(gWidth + 1, gHeight, 1);
+            compFHShader.Use();
+            GL.DispatchCompute(gWidth, gHeight + 1, 1);
+            GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
             computeShader.Use();
             GL.DispatchCompute(gWidth, gHeight, 1);
             GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
