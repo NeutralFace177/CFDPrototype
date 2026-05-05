@@ -142,7 +142,7 @@ float BC(int valId, int iOffset, int jOffset) {
                 return 0;  
             //e
             case 3:
-                return 0.718 * 100.0;
+                return 0.718 * 300.0;
             //S 
             case 4:
                 return fields[newIndex].S;

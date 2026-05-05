@@ -252,7 +252,8 @@ vec4 Dv(int iOffset, int jOffset) {
 }
 
 float calcPressure(int iOffset, int jOffset) {
-    return BC(0,iOffset,jOffset) * 0.286 * ((BC(3,iOffset,jOffset)-0.5*(BC(1,iOffset,jOffset)*BC(1,iOffset,jOffset)+BC(2,iOffset,jOffset)*BC(2,iOffset,jOffset)))/0.718);
+   // return BC(0,iOffset,jOffset) * 0.286 * ((BC(3,iOffset,jOffset)-0.5*(BC(1,iOffset,jOffset)*BC(1,iOffset,jOffset)+BC(2,iOffset,jOffset)*BC(2,iOffset,jOffset)))/0.718);
+   return (1.4-1.0)*BC(0,iOffset,jOffset) * (BC(3,iOffset,jOffset)-0.5*(BC(1,iOffset,jOffset)*BC(1,iOffset,jOffset)+BC(2,iOffset,jOffset)*BC(2,iOffset,jOffset)));
 }
 
 
@@ -432,7 +433,7 @@ float WENOLIM(int valId, int dim, bool forwards) {
 }
 
 float Scheme(int valId, int dim, bool forwards) {
-    return WENO(valId,dim,forwards);
+    return SOULIM(valId,dim,forwards);
 }
 
 void main() {
@@ -466,11 +467,11 @@ void main() {
     float dFR = dR*uR;
     float dFL = dL*uL;
 
-    float uFR = dR*uR*uR+pR;
-    float uFL = dL*uL*uL+pL;
+    float uFR = dR*uR*vR;
+    float uFL = dL*uL*vL;
 
-    float vFR = dR*uR*vR;
-    float vFL = dL*uL*vL;
+    float vFR = dR*vR*vR+pR;
+    float vFL = dL*vL*vL+pL;
 
     float EFR = uR*(dR*ER+pR);
     float EFL = uL*(dL*EL+pL);
@@ -485,7 +486,7 @@ void main() {
     float dLdR = sqrt(dL)+sqrt(dR);
     float N2 = 0.5 * sqrt(dL)*sqrt(dR) / pow(dLdR,2);
     float dhat = (sqrt(dL)*cL*cL+sqrt(dR)*cR*cR)/(dLdR) + N2*pow(vR-vL,2);
-    float vhat = (sqrt(dL)*vL+sqrt(dR)*uR)/dLdR;
+    float vhat = (sqrt(dL)*vL+sqrt(dR)*vR)/dLdR;
     float S_L = vhat - dhat;
     float S_R = vhat + dhat;
 
@@ -497,13 +498,13 @@ void main() {
         yFaceFlux[faceIndex].v = vL;
         yFaceFlux[faceIndex].E = EL;
         yFaceFlux[faceIndex].S = sL;
-    } else if (S_L <= 0 && 0 <= S_M) {
+    } else if (S_L < 0 && 0 <= S_M) {
         float dSvSSR = dR * (S_R-vR)/(S_R-S_M);
         float dSvSSL = dL * (S_L-vL)/(S_L-S_M);
 
         float uML = dSvSSL * uL;
         float vML = dSvSSL * S_M;
-        float EML = dSvSSL * (EL/dL + (S_M-vL)*(S_M+pL/(dL*(S_L-uL))));
+        float EML = dSvSSL * (EL/dL + (S_M-vL)*(S_M+pL/(dL*(S_L-vL))));
         float sML = dSvSSL * sL;
 
         yFaceFlux[faceIndex].d = dL + S_L*(1.0-dL);
@@ -512,20 +513,20 @@ void main() {
         yFaceFlux[faceIndex].E = EL + S_L*(EML-EL);
         yFaceFlux[faceIndex].S = sL + S_L*(sML-sL);
 
-    } else if (S_M <= 0 && 0 <= S_R) {
+    } else if (S_M <= 0 && 0 < S_R) {
         float dSvSSR = dR * (S_R-vR)/(S_R-S_M);
         float dSvSSL = dL * (S_L-vL)/(S_L-S_M);
 
         float uMR = dSvSSR * uR;
         float vMR = dSvSSR * S_M;
-        float EMR = dSvSSR * (ER/dR + (S_M-vR)*(S_M+pR/(dR*(S_R-uR))));
+        float EMR = dSvSSR * (ER/dR + (S_M-vR)*(S_M+pR/(dR*(S_R-vR))));
         float sMR = dSvSSR * sR;
 
         yFaceFlux[faceIndex].d = dR + S_R*(1.0-dR);
         yFaceFlux[faceIndex].u = uR + S_R*(uMR-uR);
         yFaceFlux[faceIndex].v = vR + S_R*(vMR-vR);
         yFaceFlux[faceIndex].E = ER + S_R*(EMR-ER);
-        yFaceFlux[faceIndex].E = sR + S_L*(sMR-sR);
+        yFaceFlux[faceIndex].S = sR + S_R*(sMR-sR);
     } else if (0 >= S_R) {
         yFaceFlux[faceIndex].d = dR;
         yFaceFlux[faceIndex].u = uR;

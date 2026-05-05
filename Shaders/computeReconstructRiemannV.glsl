@@ -252,7 +252,8 @@ vec4 Dv(int iOffset, int jOffset) {
 }
 
 float calcPressure(int iOffset, int jOffset) {
-    return BC(0,iOffset,jOffset) * 0.286 * ((BC(3,iOffset,jOffset)-0.5*(BC(1,iOffset,jOffset)*BC(1,iOffset,jOffset)+BC(2,iOffset,jOffset)*BC(2,iOffset,jOffset)))/0.718);
+   // return BC(0,iOffset,jOffset) * 0.286 * ((BC(3,iOffset,jOffset)-0.5*(BC(1,iOffset,jOffset)*BC(1,iOffset,jOffset)+BC(2,iOffset,jOffset)*BC(2,iOffset,jOffset)))/0.718);
+   return (1.4-1.0)*BC(0,iOffset,jOffset) * (BC(3,iOffset,jOffset)-0.5*(BC(1,iOffset,jOffset)*BC(1,iOffset,jOffset)+BC(2,iOffset,jOffset)*BC(2,iOffset,jOffset)));
 }
 
 
@@ -432,7 +433,7 @@ float WENOLIM(int valId, int dim, bool forwards) {
 }
 
 float Scheme(int valId, int dim, bool forwards) {
-    return WENO(valId,dim,forwards);
+    return SOULIM(valId,dim,forwards);
 }
 
 void main() {
@@ -499,7 +500,7 @@ void main() {
         xFaceFlux[index].v = vFL;
         xFaceFlux[index].E = EFL;
         xFaceFlux[index].S = sFL;
-    } else if (S_L <= 0 && 0 <= S_M) {
+    } else if (S_L < 0 && 0 <= S_M) {
         float dSuSSR = dR * (S_R-uR)/(S_R-S_M);
         float dSuSSL = dL * (S_L-uL)/(S_L-S_M);
 
@@ -514,7 +515,7 @@ void main() {
         xFaceFlux[index].E = EFL + S_L*(EML-EL);
         xFaceFlux[index].S = sFL + S_L*(sML-sL);
 
-    } else if (S_M <= 0 && 0 <= S_R) {
+    } else if (S_M <= 0 && 0 < S_R) {
         float dSuSSR = dR * (S_R-uR)/(S_R-S_M);
         float dSuSSL = dL * (S_L-uL)/(S_L-S_M);
 
@@ -527,7 +528,7 @@ void main() {
         xFaceFlux[index].u = uFR + S_R*(uMR-uR);
         xFaceFlux[index].v = vFR + S_R*(vMR-vR);
         xFaceFlux[index].E = EFR + S_R*(EMR-ER);
-        xFaceFlux[index].E = sFR + S_L*(sMR-sR);
+        xFaceFlux[index].S = sFR + S_R*(sMR-sR);
     } else if (0 >= S_R) {
         xFaceFlux[index].d = dFR;
         xFaceFlux[index].u = uFR;

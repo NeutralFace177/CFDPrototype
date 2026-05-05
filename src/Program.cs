@@ -160,7 +160,7 @@ public class Window : GameWindow
         Console.WriteLine(sigma.ToString());
         Console.WriteLine(sigma.SwapColumn(1, 3));
         textureData = new float[width * height*3];
-        gWidth = 800;
+        gWidth = 1000;
         gHeight = (int)(gWidth*0.6f);
         grid = new Grid(gWidth, gHeight);
         compShaderDataIn = new Field2D[gWidth, gHeight];
@@ -177,7 +177,7 @@ public class Window : GameWindow
         zuh = 0;
 
         //shader sim parameters
-        ssInfo = new ShaderSimInfo(0.75f,0.75f, 0.0001f, Vector2.Zero, width, height);
+        ssInfo = new ShaderSimInfo(0.15f*(2f/5f),0.15f * (2f / 5f), 0.0001f, Vector2.Zero, width, height);
 
         for (int i = 0; i < gWidth; i++)
         {
@@ -211,7 +211,7 @@ public class Window : GameWindow
         shader = new Shader("Shaders/vert.glsl", "Shaders/frag.glsl");
         compFHShader = new ComputeShader("Shaders/computeReconstructRiemannH.glsl");
         compFVShader = new ComputeShader("Shaders/computeReconstructRiemannV.glsl");
-        computeShader = new ComputeShader("Shaders/computeStep.glsl");
+        computeShader = new ComputeShader("Shaders/computeFDM.glsl");
         textureHandle = GL.GenTexture();
         compTextureHandle = GL.GenTexture();
         GL.CreateBuffers(1, out ssbo);

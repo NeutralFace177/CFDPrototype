@@ -609,7 +609,7 @@ void main() {
     ///TODO: IMPROVE VORTICITY CALCULATIONS TS LOWK LAZY AND UNOPTIMIZED
     vec4 DV = Dv(coords.x,coords.y);
     vec3 vorticityVIEW = vec3(DV.z-DV.y,0,-(DV.z-DV.y));
-    imageStore(imgOutput, coords, vec4(velocityVIEW,1.0));
+    imageStore(imgOutput, coords, vec4(sEdVIEW,1.0));
     if (mesh[index] == 1) {
         imageStore(imgOutput, coords, vec4(velocityVIEW,1.0));
     }
