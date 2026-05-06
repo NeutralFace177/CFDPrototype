@@ -485,55 +485,57 @@ void main() {
     float cR = sqrt(1.4 * pR / dR);
     float cL = sqrt(1.4 * pL / dL);
 
-    float dLdR = sqrt(dL)+sqrt(dR);
-    float N2 = 0.5 * sqrt(dL)*sqrt(dR) / pow(dLdR,2);
-    float dhat = (sqrt(dL)*cL*cL+sqrt(dR)*cR*cR)/(dLdR) + N2*pow(uR-uL,2);
-    float uhat = (sqrt(dL)*uL+sqrt(dR)*uR)/dLdR;
-    float S_L = uhat - dhat;
-    float S_R = uhat + dhat;
+   // float dLdR = sqrt(dL)+sqrt(dR);
+   // float N2 = 0.5 * sqrt(dL)*sqrt(dR) / pow(dLdR,2);
+   // float dhat = (sqrt(dL)*cL*cL+sqrt(dR)*cR*cR)/(dLdR) + N2*pow(uR-uL,2);
+   // float uhat = (sqrt(dL)*uL+sqrt(dR)*uR)/dLdR;
+   // float S_L = uhat - dhat;
+   // float S_R = uhat + dhat;
+
+   float S_L = min(uL-cL, uR-cR);
+   float S_R = max(uL+cL, uR+cR);
 
     float S_M = (pR-pL+dL*uL*(S_L-uL)-dR*uR*(S_R-uR))/(dL*(S_L-uL)-dR*(S_R-uR));
-    
+
+    float dMR = dR * (S_R-uR)/(S_R-S_M);
+    float dML = dL * (S_L-uL)/(S_L-S_M);
+
     if (0 <= S_L) {
-        xFaceFlux[index].d = dFL;
-        xFaceFlux[index].u = uFL;
-        xFaceFlux[index].v = vFL;
-        xFaceFlux[index].E = EFL;
-        xFaceFlux[index].S = sFL;
+        xFaceFlux[faceIndex].d = dFL;
+        xFaceFlux[faceIndex].u = uFL;
+        xFaceFlux[faceIndex].v = vFL;
+        xFaceFlux[faceIndex].E = EFL;
+        xFaceFlux[faceIndex].S = sFL;
     } else if (S_L < 0 && 0 <= S_M) {
-        float dSuSSR = dR * (S_R-uR)/(S_R-S_M);
-        float dSuSSL = dL * (S_L-uL)/(S_L-S_M);
 
-        float uML = dSuSSL * S_M;
-        float vML = dSuSSL * vL;
-        float EML = dSuSSL * (EL/dL + (S_M-uL)*(S_M+pL/(dL*(S_L-uL))));
-        float sML = dSuSSL * sL;
+        float uML = dML * S_M;
+        float vML = dML * vL;
+        float EML = dML * (EL/dL + (S_M-uL)*(S_M+pL/(dL*(S_L-uL))));
+        float sML = dML * sL;
 
-        xFaceFlux[index].d = dFL + S_L*(1.0-dL);
-        xFaceFlux[index].u = uFL + S_L*(uML-uL);
-        xFaceFlux[index].v = vFL + S_L*(vML-vL);
-        xFaceFlux[index].E = EFL + S_L*(EML-EL);
-        xFaceFlux[index].S = sFL + S_L*(sML-sL);
+        xFaceFlux[faceIndex].d = dFL + S_L*(dML-dL);
+        xFaceFlux[faceIndex].u = uFL + S_L*(uML-dL*uL);
+        xFaceFlux[faceIndex].v = vFL + S_L*(vML-dL*vL);
+        xFaceFlux[faceIndex].E = EFL + S_L*(EML-dL*EL);
+        xFaceFlux[faceIndex].S = sFL + S_L*(sML-dL*sL);
 
     } else if (S_M <= 0 && 0 < S_R) {
-        float dSuSSR = dR * (S_R-uR)/(S_R-S_M);
-        float dSuSSL = dL * (S_L-uL)/(S_L-S_M);
 
-        float uMR = dSuSSR * S_M;
-        float vMR = dSuSSR * vR;
-        float EMR = dSuSSR * (ER/dR + (S_M-uR)*(S_M+pR/(dR*(S_R-uR))));
-        float sMR = dSuSSR * sR;
+        float uMR = dMR * S_M;
+        float vMR = dMR * vR;
+        float EMR = dMR * (ER/dR + (S_M-uR)*(S_M+pR/(dR*(S_R-uR))));
+        float sMR = dMR * sR;
 
-        xFaceFlux[index].d = dFR + S_R*(1.0-dR);
-        xFaceFlux[index].u = uFR + S_R*(uMR-uR);
-        xFaceFlux[index].v = vFR + S_R*(vMR-vR);
-        xFaceFlux[index].E = EFR + S_R*(EMR-ER);
-        xFaceFlux[index].S = sFR + S_R*(sMR-sR);
+        xFaceFlux[faceIndex].d = dFR + S_R*(dMR-dR);
+        xFaceFlux[faceIndex].u = uFR + S_R*(uMR-dR*uR);
+        xFaceFlux[faceIndex].v = vFR + S_R*(vMR-dR*vR);
+        xFaceFlux[faceIndex].E = EFR + S_R*(EMR-dR*ER);
+        xFaceFlux[faceIndex].S = sFR + S_R*(sMR-dR*sR);
     } else if (0 >= S_R) {
-        xFaceFlux[index].d = dFR;
-        xFaceFlux[index].u = uFR;
-        xFaceFlux[index].v = vFR;
-        xFaceFlux[index].E = EFR;
-        xFaceFlux[index].S = sFR;
+        xFaceFlux[faceIndex].d = dFR;
+        xFaceFlux[faceIndex].u = uFR;
+        xFaceFlux[faceIndex].v = vFR;
+        xFaceFlux[faceIndex].E = EFR;
+        xFaceFlux[faceIndex].S = sFR;
     }
 } 

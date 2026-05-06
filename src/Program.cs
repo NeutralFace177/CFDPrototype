@@ -177,7 +177,7 @@ public class Window : GameWindow
         zuh = 0;
 
         //shader sim parameters
-        ssInfo = new ShaderSimInfo(0.15f*(2f/5f),0.15f * (2f / 5f), 0.0001f, Vector2.Zero, width, height);
+        ssInfo = new ShaderSimInfo(0.15f*(2f/5f),0.15f * (2f / 5f), 0.00001f, Vector2.Zero, width, height);
 
         for (int i = 0; i < gWidth; i++)
         {
@@ -211,7 +211,7 @@ public class Window : GameWindow
         shader = new Shader("Shaders/vert.glsl", "Shaders/frag.glsl");
         compFHShader = new ComputeShader("Shaders/computeReconstructRiemannH.glsl");
         compFVShader = new ComputeShader("Shaders/computeReconstructRiemannV.glsl");
-        computeShader = new ComputeShader("Shaders/computeFDM.glsl");
+        computeShader = new ComputeShader("Shaders/computeStep.glsl");
         textureHandle = GL.GenTexture();
         compTextureHandle = GL.GenTexture();
         GL.CreateBuffers(1, out ssbo);

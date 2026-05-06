@@ -599,7 +599,7 @@ void main() {
     }
 
     vec3 SVIEW = hsv2rgb(vec3(outFields[index].S*0.75,1.0,1.0));
-    vec3 sEdVIEW = vec3(sqrt(outFields[index].u*outFields[index].u+outFields[index].v*outFields[index].v)/60.0,outFields[index].E / 3000.0,outFields[index].d/2.5);
+    vec3 sEdVIEW = vec3(sqrt(outFields[index].u*outFields[index].u+outFields[index].v*outFields[index].v)/60.0,outFields[index].E / 30000.0,outFields[index].d/2.5);
     vec3 velocityVIEW = vec3(abs(outFields[index].u/60.0),0,abs(outFields[index].v)/12.0);
     vec3 uVIEW = vec3(outFields[index].u/120.0,0,-outFields[index].u/4.0);
     vec3 vVIEW = vec3(outFields[index].v/25.0,0,-outFields[index].v/25.0);
