@@ -174,11 +174,11 @@ namespace CFDPrototype.util
                    // v[i, j] = 0;
                     //u[i, j] = (float)(Math.Pow(Math.Sin(Math.PI * i / width),25)* Math.Pow(Math.Sin(Math.PI * j / height), 25)) * 2f;
                     //v[i, j] = (float)(Math.Pow(Math.Sin(Math.PI * i / width), 25) * Math.Pow(Math.Sin(Math.PI * j / height), 25)) * 2f;
-                    u[i, j] = Math.Pow((i+0.15*width) - 0.5f * width, 2) + Math.Pow(3*(j - 0.5f * height), 2) < Math.Pow((1.0 / 6.0f) * width, 2) ? 0.0f : 50;
+                    u[i, j] = 1.293f * Math.Pow((i+0.15*width) - 0.5f * width, 2) + Math.Pow(3*(j - 0.5f * height), 2) < Math.Pow((1.0 / 6.0f) * width, 2) ? 0.0f : 50;
                     v[i, j] = 0;
                     d[i,j] = 1.293f;
-                    e[i, j] = 0.718f * 300f + 0.5f*((float)Math.Pow(u[i,j], 2) + (float)Math.Pow(v[i,j], 2));
-                    S[i, j] = (float)i / (float)width;
+                    e[i, j] = 1.293f * (0.718f * 300f + 0.5f*((float)Math.Pow(u[i,j], 2) + (float)Math.Pow(v[i,j], 2)));
+                    S[i, j] = 1.293f*((float)i / (float)width);
                 }
             }
         }

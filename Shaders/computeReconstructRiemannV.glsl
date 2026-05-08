@@ -133,6 +133,7 @@ float BC(int valId, int I, int J, int iOffset, int jOffset) {
         newIndex = cellCoordToIndex(I,J);
         objectFlag = true;
     }
+    float density = fields[newIndex].d;
     if (objectFlag) {
         switch (valId) {
             case 0:
@@ -142,9 +143,9 @@ float BC(int valId, int I, int J, int iOffset, int jOffset) {
             case 2:
                 return 0;
             case 3:
-                return fields[newIndex].E - 0.5 * (fields[newIndex].u * fields[newIndex].u + fields[newIndex].v * fields[newIndex].v);
+                return fields[newIndex].E/density - 0.5 * (fields[newIndex].u/density * fields[newIndex].u/density + fields[newIndex].v/density * fields[newIndex].v/density);
             case 4:
-                return fields[newIndex].S;
+                return fields[newIndex].S/density;
         }
     } else if (I+iOffset < 0) { 
         switch (valId) {
@@ -159,10 +160,10 @@ float BC(int valId, int I, int J, int iOffset, int jOffset) {
                 return 0;  
             //e
             case 3:
-                return fields[newIndex].E - 0.5 * (fields[newIndex].u*fields[newIndex].u + fields[newIndex].v*fields[newIndex].v) + 0.5 * 50.0*50.0;
+                return fields[newIndex].E/density - 0.5 * (fields[newIndex].u/density * fields[newIndex].u/density + fields[newIndex].v/density * fields[newIndex].v/density) + 0.5 * 50.0*50.0;
             //S 
             case 4:
-                return fields[newIndex].S;
+                return fields[newIndex].S/density;
         }
     } else if (I+iOffset >= gl_NumWorkGroups.x-1) {
         switch (valId) {
@@ -171,16 +172,16 @@ float BC(int valId, int I, int J, int iOffset, int jOffset) {
                 return fields[newIndex].d;
             //u
             case 1:
-                return fields[newIndex].u;
+                return fields[newIndex].u/density;
             //v
             case 2:
-                return fields[newIndex].v;
+                return fields[newIndex].v/density;
             //e
             case 3:
-                return fields[newIndex].E;
+                return fields[newIndex].E/density;
             //S 
             case 4:
-                return fields[newIndex].S;
+                return fields[newIndex].S/density;
         }
     } else if (J+jOffset < 0) {
         switch (valId) {
@@ -189,16 +190,16 @@ float BC(int valId, int I, int J, int iOffset, int jOffset) {
                 return fields[newIndex].d;
             //u
             case 1:
-                return fields[newIndex].u;
+                return fields[newIndex].u/density;
             //v
             case 2:
-                return fields[newIndex].v;
+                return fields[newIndex].v/density;
             //e
             case 3:
-                return fields[newIndex].E;
+                return fields[newIndex].E/density;
             //S 
             case 4:
-                return fields[newIndex].S;
+                return fields[newIndex].S/density;
         }
     } else if (J+jOffset >= gl_NumWorkGroups.y) {
         switch (valId) {
@@ -207,29 +208,29 @@ float BC(int valId, int I, int J, int iOffset, int jOffset) {
                 return fields[newIndex].d;
             //u
             case 1:
-                return fields[newIndex].u;
+                return fields[newIndex].u/density;
             //v
             case 2:
-                return fields[newIndex].v;
+                return fields[newIndex].v/density;
             //e
             case 3:
-                return fields[newIndex].E;
+                return fields[newIndex].E/density;
             //S 
             case 4:
-                return fields[newIndex].S;
+                return fields[newIndex].S/density;
         }
     } else {
         switch (valId) {
             case 0:
                 return fields[newIndex].d;
             case 1:
-                return fields[newIndex].u;
+                return fields[newIndex].u/density;
             case 2:
-                return fields[newIndex].v;
+                return fields[newIndex].v/density;
             case 3:
-                return fields[newIndex].E;
+                return fields[newIndex].E/density;
             case 4:
-                return fields[newIndex].S;
+                return fields[newIndex].S/density;
         }
     }
 }
@@ -478,8 +479,8 @@ void main() {
     float EFR = uR*(dR*ER+pR);
     float EFL = uL*(dL*EL+pL);
 
-    float sFL = dR*uR*sR;
-    float sFR = dL*uL*sL;
+    float sFR = dR*uR*sR;
+    float sFL = dL*uL*sL;
 
     //speed of sound, wave speed
     float cR = sqrt(1.4 * pR / dR);
