@@ -133,7 +133,7 @@ float BC(int valId, int I, int J, int iOffset, int jOffset) {
         newIndex = cellCoordToIndex(I,J);
         objectFlag = true;
     }
-    float density = fields[newIndex].d;
+    
     if (objectFlag) {
         switch (valId) {
             case 0:
@@ -143,9 +143,9 @@ float BC(int valId, int I, int J, int iOffset, int jOffset) {
             case 2:
                 return 0;
             case 3:
-                return fields[newIndex].E/density - 0.5 * (fields[newIndex].u/density * fields[newIndex].u/density + fields[newIndex].v/density * fields[newIndex].v/density);
+                return fields[newIndex].E - 0.5 * (fields[newIndex].u * fields[newIndex].u + fields[newIndex].v * fields[newIndex].v);
             case 4:
-                return fields[newIndex].S/density;
+                return fields[newIndex].S;
         }
     } else if (I+iOffset < 0) { 
         switch (valId) {
@@ -154,16 +154,16 @@ float BC(int valId, int I, int J, int iOffset, int jOffset) {
                 return 1.293;
             //u
             case 1:
-                return 50.0;
+                return 0;
             //v
             case 2:
                 return 0;  
             //e
             case 3:
-                return fields[newIndex].E/density - 0.5 * (fields[newIndex].u/density * fields[newIndex].u/density + fields[newIndex].v/density * fields[newIndex].v/density) + 0.5 * 50.0*50.0;
+                return fields[newIndex].E - 0.5 * (fields[newIndex].u*fields[newIndex].u + fields[newIndex].v*fields[newIndex].v);
             //S 
             case 4:
-                return fields[newIndex].S/density;
+                return fields[newIndex].S;
         }
     } else if (I+iOffset >= gl_NumWorkGroups.x) {
         switch (valId) {
@@ -172,16 +172,16 @@ float BC(int valId, int I, int J, int iOffset, int jOffset) {
                 return fields[newIndex].d;
             //u
             case 1:
-                return fields[newIndex].u/density;
+                return 0;
             //v
             case 2:
-                return fields[newIndex].v/density;
+                return 0;
             //e
             case 3:
-                return fields[newIndex].E/density;
+                return fields[newIndex].E - 0.5 * (fields[newIndex].u*fields[newIndex].u + fields[newIndex].v*fields[newIndex].v);
             //S 
             case 4:
-                return fields[newIndex].S/density;
+                return fields[newIndex].S;
         }
     } else if (J+jOffset < 0) {
         switch (valId) {
@@ -190,16 +190,16 @@ float BC(int valId, int I, int J, int iOffset, int jOffset) {
                 return fields[newIndex].d;
             //u
             case 1:
-                return fields[newIndex].u/density;
+                return 0;
             //v
             case 2:
-                return fields[newIndex].v/density;
+                return 0;
             //e
             case 3:
-                return fields[newIndex].E/density;
+                return fields[newIndex].E - 0.5 * (fields[newIndex].u*fields[newIndex].u + fields[newIndex].v*fields[newIndex].v);
             //S 
             case 4:
-                return fields[newIndex].S/density;
+                return fields[newIndex].S;
         }
     } else if (J+jOffset >= gl_NumWorkGroups.y-1) {
         switch (valId) {
@@ -208,29 +208,29 @@ float BC(int valId, int I, int J, int iOffset, int jOffset) {
                 return fields[newIndex].d;
             //u
             case 1:
-                return fields[newIndex].u/density;
+                return 1;
             //v
             case 2:
-                return fields[newIndex].v/density;
+                return 0;
             //e
             case 3:
-                return fields[newIndex].E/density;
+                return fields[newIndex].E - 0.5 * (fields[newIndex].u*fields[newIndex].u + fields[newIndex].v*fields[newIndex].v) + 0.5*1;;
             //S 
             case 4:
-                return fields[newIndex].S/density;
+                return fields[newIndex].S;
         }
     } else {
         switch (valId) {
             case 0:
                 return fields[newIndex].d;
             case 1:
-                return fields[newIndex].u/density;
+                return fields[newIndex].u;
             case 2:
-                return fields[newIndex].v/density;
+                return fields[newIndex].v;
             case 3:
-                return fields[newIndex].E/density;
+                return fields[newIndex].E;
             case 4:
-                return fields[newIndex].S/density;
+                return fields[newIndex].S;
         }
     }
 }
@@ -434,7 +434,7 @@ float WENOLIM(int valId, int dim, bool forwards) {
 }
 
 float Scheme(int valId, int dim, bool forwards) {
-    return SOULIM(valId,dim,forwards);
+    return CD(valId,dim,forwards);
 }
 
 void main() {
@@ -452,8 +452,8 @@ void main() {
     float RCYF = 0.5 * (dt/BC(0,0,0) + dt/BC(0,0,1))*((pr-pc)/dy);
     float RCYB = 0.5 * (dt/BC(0,0,0) + dt/BC(0,0,-1))*((pc-pl)/dy);
 
-    float uR = Scheme(1,1,false) + rhieChowToggle * RCYF;
-    float uL = Scheme(1,1,true) + rhieChowToggle * RCYB;
+    float uR = Scheme(1,1,false);// + rhieChowToggle * RCYF;
+    float uL = Scheme(1,1,true);// + rhieChowToggle * RCYB;
 
     float vR = Scheme(2,1,false) + rhieChowToggle * RCYF;
     float vL = Scheme(2,1,true) + rhieChowToggle * RCYB;

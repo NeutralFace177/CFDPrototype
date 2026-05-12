@@ -13,7 +13,7 @@ public class Program
 {
     public static void Main()
     {
-        Window window = new Window(2000,1200,"Sigma");
+        Window window = new Window(1200,1200,"Sigma");
         window.Run();
     }
 }
@@ -160,8 +160,9 @@ public class Window : GameWindow
         Console.WriteLine(sigma.ToString());
         Console.WriteLine(sigma.SwapColumn(1, 3));
         textureData = new float[width * height*3];
-        gWidth = 1000;
-        gHeight = (int)(gWidth*0.6f);
+        gWidth = 512;
+        gHeight = 512;
+        //gHeight = (int)(gWidth*0.6f);
         grid = new Grid(gWidth, gHeight);
         compShaderDataIn = new Field2D[gWidth, gHeight];
         compShaderDataOut = new Field2D[gWidth, gHeight];
@@ -177,7 +178,7 @@ public class Window : GameWindow
         zuh = 0;
 
         //shader sim parameters
-        ssInfo = new ShaderSimInfo(0.15f*(2f/5f),0.15f * (2f / 5f), 0.00001f, Vector2.Zero, width, height);
+        ssInfo = new ShaderSimInfo(1f/512f, 1f / 512f, 0.000001f, Vector2.Zero, width, height);
 
         for (int i = 0; i < gWidth; i++)
         {
