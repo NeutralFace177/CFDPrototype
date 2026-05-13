@@ -184,7 +184,7 @@ namespace CFDPrototype.util
             }
         }
 
-        public void StoreGrid(Field2D[,] field, int[,] mesh)
+        public void StoreToField2D(Field2D[,] field)
         {
             for (int i = 0; i < width; i++)
             {
@@ -195,8 +195,8 @@ namespace CFDPrototype.util
                     field[i,j].v = v[i, j];
                     field[i,j].E = e[i, j];
                     field[i,j].S = S[i, j];
-                    if (Math.Pow((i + 0.15 * width) - 0.5f * width, 2) + Math.Pow(3 * (j - 0.5f * height), 2) < Math.Pow((1.0f /  6.0f) * width, 2)) {
-                    //    mesh[i, j] = 1;
+                    if ((i - 0.5f * width) * (i - 0.5f * width) + (3 * (j - 0.5f * height)) * (3 * (j - 0.5f * height)) < Math.Pow((1.0f / 4.0f) * width, 2)) {
+                        mesh[i, j] = 1;
                     }
                 }
             }

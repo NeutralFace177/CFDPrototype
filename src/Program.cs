@@ -39,9 +39,9 @@ public class Window : GameWindow
     }
     struct DebugThing
     {
-        public int f2d;
+        public Field2D f2d;
 
-        public DebugThing(int f)
+        public DebugThing(Field2D f)
         {
             f2d = f;
         }
@@ -112,8 +112,6 @@ public class Window : GameWindow
     int vertexArrayObject;
     private Shader shader;
     ComputeShader computeShader;
-    ComputeShader compFHShader;
-    ComputeShader compFVShader;
     int textureHandle;
     int compTextureHandle;
     ShaderSimInfo ssInfo;
@@ -126,9 +124,6 @@ public class Window : GameWindow
     int ssbo;
     int ssbo1;
     int ssbo2;
-    int ssbo3;
-    int ssboFH;
-    int ssboFV;
     int ssboDebug;
     float[] textureData;
     Grid grid;
@@ -139,8 +134,7 @@ public class Window : GameWindow
     SimState simState;
     Processor proc;
     bool debugSSBOEnabled = false;
-    bool updateMesh = true;
-    OpenTK.Mathematics.Vector2 prevMousePos;
+
     public Window(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings() { ClientSize = (width, height), Title = title })
     {
         /*Vector3[] arr = Class1.Func(700,700);
@@ -210,17 +204,13 @@ public class Window : GameWindow
         base.OnLoad();
 
         shader = new Shader("Shaders/vert.glsl", "Shaders/frag.glsl");
-        compFHShader = new ComputeShader("Shaders/computeReconstructRiemannH.glsl");
-        compFVShader = new ComputeShader("Shaders/computeReconstructRiemannV.glsl");
-        computeShader = new ComputeShader("Shaders/computeStep.glsl");
+        computeShader = new ComputeShader("Shaders/compute.glsl");
         textureHandle = GL.GenTexture();
         compTextureHandle = GL.GenTexture();
         GL.CreateBuffers(1, out ssbo);
         GL.CreateBuffers(1, out ssbo1);
         GL.CreateBuffers(1, out ssbo2);
         GL.CreateBuffers(1, out ssbo3);
-        GL.CreateBuffers(1, out ssboFH);
-        GL.CreateBuffers(1, out ssboFV);
         if (debugSSBOEnabled)
         {
             GL.CreateBuffers(1, out ssboDebug);
@@ -259,27 +249,6 @@ public class Window : GameWindow
                 GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
             }
         }
-
-        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssbo3);
-        unsafe
-        {
-            fixed (Field2D* ptr3 = &compShaderDataIn[0,0]) {
-                GL.BufferData(BufferTarget.ShaderStorageBuffer, compShaderDataOut.Length * sizeof(Field2D), (IntPtr)ptr3, BufferUsageHint.DynamicRead);
-            }
-        }
-        GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 6, ssbo3);
-        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
-
-        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssboFH);
-        GL.BufferData(BufferTarget.ShaderStorageBuffer, sizeof(Field2D) * gWidth * (gHeight + 1), IntPtr.Zero, BufferUsageHint.DynamicRead);
-        GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 7, ssboFH);
-        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
-
-
-        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssboFV);
-        GL.BufferData(BufferTarget.ShaderStorageBuffer, sizeof(Field2D) * (gWidth+1) * gHeight, IntPtr.Zero, BufferUsageHint.DynamicRead);
-        GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 8, ssboFV);
-        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
 
         if (debugSSBOEnabled)
         {
@@ -334,8 +303,6 @@ public class Window : GameWindow
         base.OnUnload();
         shader.Dispose();
         computeShader.Dispose();
-        compFHShader.Dispose();
-        compFVShader.Dispose();
     }
 
     protected override void OnRenderFrame(FrameEventArgs e)
@@ -379,11 +346,9 @@ public class Window : GameWindow
                     GL.UnmapBuffer(BufferTarget.ShaderStorageBuffer);
                 }
             }
-            compFVShader.Use();
-            GL.DispatchCompute(gWidth + 1, gHeight, 1);
-            compFHShader.Use();
-            GL.DispatchCompute(gWidth, gHeight + 1, 1);
-            GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
+            int block_index = GL.GetProgramResourceIndex(computeShader.handle, ProgramInterface.ShaderStorageBlock, "shader_data");
+            int ssbo_binding_point_index = 2;
+            GL.ShaderStorageBlockBinding(computeShader.handle, block_index, ssbo_binding_point_index);
             computeShader.Use();
             GL.DispatchCompute(gWidth, gHeight, 1);
             GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
@@ -397,12 +362,6 @@ public class Window : GameWindow
                     fixed (void* dataPtr2 = &compShaderDataIn[0, 0])
                     {
                         System.Buffer.MemoryCopy(ptr1.ToPointer(), dataPtr, compShaderDataOut.Length * sizeof(Field2D), compShaderDataOut.Length * sizeof(Field2D));
-                        GL.UnmapBuffer(BufferTarget.ShaderStorageBuffer);
-
-                        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssbo3);
-                        IntPtr ptr5 = GL.MapBuffer(BufferTarget.ShaderStorageBuffer, BufferAccess.WriteOnly);
-                        System.Buffer.MemoryCopy(dataPtr2, ptr5.ToPointer(), compShaderDataOut.Length * sizeof(Field2D), compShaderDataOut.Length * sizeof(Field2D));
-                        GL.UnmapBuffer(BufferTarget.ShaderStorageBuffer);
                         System.Buffer.MemoryCopy(dataPtr, dataPtr2, compShaderDataOut.Length * sizeof(Field2D), compShaderDataOut.Length * sizeof(Field2D));
                     }
                 }
