@@ -136,13 +136,13 @@ float BC(int valId, int iOffset, int jOffset) {
                 return 1.293;
             //u
             case 1:
-                return 50;
+                return 0;
             //v
             case 2:
                 return 0;  
             //e
             case 3:
-                return 0.718 * 300.0;
+                return fields[newIndex].E;
             //S 
             case 4:
                 return fields[newIndex].S;
@@ -154,10 +154,10 @@ float BC(int valId, int iOffset, int jOffset) {
                 return fields[newIndex].d;
             //u
             case 1:
-                return fields[newIndex].u;
+                return 0;
             //v
             case 2:
-                return fields[newIndex].v;
+                return 0;
             //e
             case 3:
                 return fields[newIndex].E;
@@ -172,10 +172,10 @@ float BC(int valId, int iOffset, int jOffset) {
                 return fields[newIndex].d;
             //u
             case 1:
-                return fields[newIndex].u;
+                return 0;
             //v
             case 2:
-                return fields[newIndex].v;
+                return 0;
             //e
             case 3:
                 return fields[newIndex].E;
@@ -190,10 +190,10 @@ float BC(int valId, int iOffset, int jOffset) {
                 return fields[newIndex].d;
             //u
             case 1:
-                return fields[newIndex].u;
+                return 1;
             //v
             case 2:
-                return fields[newIndex].v;
+                return 0;
             //e
             case 3:
                 return fields[newIndex].E;
@@ -266,15 +266,15 @@ void main() {
     }
 
     vec3 SVIEW = hsv2rgb(vec3(fields[index].S*0.75,1.0,1.0));
-    vec3 sEdVIEW = vec3(sqrt(outFields[index].u*outFields[index].u+outFields[index].v*outFields[index].v)/150.0,outFields[index].E / 5000.0,outFields[index].d/2.5);
-    vec3 velocityVIEW = vec3(abs(outFields[index].u/60.0),0,abs(outFields[index].v)/10.0);
+    vec3 sEdVIEW = vec3(sqrt(outFields[index].u*outFields[index].u+outFields[index].v*outFields[index].v)/1.0,outFields[index].E / 5000.0,outFields[index].d/2.5);
+    vec3 velocityVIEW = vec3(abs(outFields[index].u/1.0),0,abs(outFields[index].v)/1.0);
     vec3 uVIEW = vec3(fields[index].u/120.0,0,-fields[index].u/4.0);
     vec3 vVIEW = vec3(fields[index].v/10.0,0,-fields[index].v/10.0);
 
     debug[index].f2d = mesh[index];
 
     vec3 vorticityVIEW = vec3(vDx-uDy,0,-(vDx-uDy));
-    imageStore(imgOutput, coords, vec4(velocityVIEW,1.0));
+    imageStore(imgOutput, coords, vec4(sEdVIEW,1.0));
     if (mesh[index] == 1) {
         imageStore(imgOutput, coords, vec4(uVIEW,0.0));
     }

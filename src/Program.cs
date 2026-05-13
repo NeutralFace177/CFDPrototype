@@ -13,7 +13,7 @@ public class Program
 {
     public static void Main()
     {
-        Window window = new Window(1200,1200,"Sigma");
+        Window window = new Window(1200, 1200, "Sigma");
         window.Run();
     }
 }
@@ -25,7 +25,7 @@ public class Window : GameWindow
         public int i;
         public int j;
         public int index;
-        public CoordIndexPair(int i,  int j, int index)
+        public CoordIndexPair(int i, int j, int index)
         {
             this.i = i;
             this.j = j;
@@ -39,13 +39,13 @@ public class Window : GameWindow
     }
     struct DebugThing
     {
-        public Field2D f2d;
+        public int f2d;
 
-        public DebugThing(Field2D f)
+        public DebugThing(int f)
         {
             f2d = f;
         }
-        
+
     }
 
     struct ShaderSimInfo
@@ -69,29 +69,12 @@ public class Window : GameWindow
         }
     }
 
-    struct DataGroup4
-    {
-        float R;
-        float L;
-        float U;
-        float D;
-
-        public DataGroup4(float r, float l, float u, float d)
-        {
-            R = r;
-            L = l;
-            U = u;
-            D = d;
-        }
-    }
-
     enum SimState
     {
         Run,
         Paused,
         Step
     }
-
 
     enum Processor
     {
@@ -108,7 +91,7 @@ public class Window : GameWindow
     };
 
 
-    int vertexBufferObject; 
+    int vertexBufferObject;
     int vertexArrayObject;
     private Shader shader;
     ComputeShader computeShader;
@@ -124,6 +107,7 @@ public class Window : GameWindow
     int ssbo;
     int ssbo1;
     int ssbo2;
+    int ssbo3;
     int ssboDebug;
     float[] textureData;
     Grid grid;
@@ -134,7 +118,8 @@ public class Window : GameWindow
     SimState simState;
     Processor proc;
     bool debugSSBOEnabled = false;
-
+    bool updateMesh = true;
+    OpenTK.Mathematics.Vector2 prevMousePos;
     public Window(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings() { ClientSize = (width, height), Title = title })
     {
         /*Vector3[] arr = Class1.Func(700,700);
@@ -149,14 +134,14 @@ public class Window : GameWindow
         }
         sw.Close();
         */
-        float[,] a = { { 5.0f, 4.0f , 3.0f}, { 9.0f, 6.0f , 1.0f} , { 7.0f, 8.0f, 2.0f} };
+        float[,] a = { { 5.0f, 4.0f, 3.0f }, { 9.0f, 6.0f, 1.0f }, { 7.0f, 8.0f, 2.0f } };
         Matrix sigma = new Matrix(a);
         Console.WriteLine(sigma.ToString());
         Console.WriteLine(sigma.SwapColumn(1, 3));
-        textureData = new float[width * height*3];
+        textureData = new float[width * height * 3];
         gWidth = 512;
         gHeight = 512;
-        //gHeight = (int)(gWidth*0.6f);
+        //gHeight = (int)(gWidth * 0.6f);
         grid = new Grid(gWidth, gHeight);
         compShaderDataIn = new Field2D[gWidth, gHeight];
         compShaderDataOut = new Field2D[gWidth, gHeight];
@@ -178,9 +163,9 @@ public class Window : GameWindow
         {
             for (int j = 0; j < gHeight; j++)
             {
-         //       textureData[(gWidth * j + i) * 3] = grid.u[i, j];
-          //      textureData[(gWidth * j + i) * 3 + 1] = grid.v[i, j];
-          //      textureData[(gWidth * j + i) * 3 + 2] = grid.d[i, j] / 2f;
+                //       textureData[(gWidth * j + i) * 3] = grid.u[i, j];
+                //      textureData[(gWidth * j + i) * 3 + 1] = grid.v[i, j];
+                //      textureData[(gWidth * j + i) * 3 + 2] = grid.d[i, j] / 2f;
             }
         }
 
@@ -188,14 +173,14 @@ public class Window : GameWindow
     static string FloatToBinary(float f)
     {
         StringBuilder sb = new StringBuilder();
-        byte[] ba = BitConverter.GetBytes(f);
-        foreach (byte b in ba)
+        Byte[] ba = BitConverter.GetBytes(f);
+        foreach (Byte b in ba)
             for (int i = 0; i < 8; i++)
             {
                 sb.Insert(0, ((b >> i) & 1) == 1 ? "1" : "0");
             }
         string s = sb.ToString();
-        string r = s[..1] + " " + s.Substring(1, 8) + " " + s[9..]; //sign exponent mantissa
+        string r = s.Substring(0, 1) + " " + s.Substring(1, 8) + " " + s.Substring(9); //sign exponent mantissa
         return r;
     }
 
@@ -204,7 +189,7 @@ public class Window : GameWindow
         base.OnLoad();
 
         shader = new Shader("Shaders/vert.glsl", "Shaders/frag.glsl");
-        computeShader = new ComputeShader("Shaders/compute.glsl");
+        computeShader = new ComputeShader("Shaders/computeFDM.glsl");
         textureHandle = GL.GenTexture();
         compTextureHandle = GL.GenTexture();
         GL.CreateBuffers(1, out ssbo);
@@ -220,7 +205,8 @@ public class Window : GameWindow
         {
             GL.BufferData(BufferTarget.ShaderStorageBuffer, compShaderDataIn.Length * sizeof(Field2D) + sizeof(ShaderSimInfo), IntPtr.Zero, BufferUsageHint.DynamicCopy);
             GL.BufferSubData(BufferTarget.ShaderStorageBuffer, IntPtr.Zero, sizeof(ShaderSimInfo), ref ssInfo);
-            fixed (Field2D* ptr = &compShaderDataIn[0,0]) {
+            fixed (Field2D* ptr = &compShaderDataIn[0, 0])
+            {
                 GL.BufferSubData(BufferTarget.ShaderStorageBuffer, (IntPtr)sizeof(ShaderSimInfo), compShaderDataIn.Length * sizeof(Field2D), (IntPtr)ptr);
             }
         }
@@ -231,7 +217,7 @@ public class Window : GameWindow
         GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssbo1);
         unsafe
         {
-            fixed (Field2D* ptr = &compShaderDataOut[0,0])
+            fixed (Field2D* ptr = &compShaderDataOut[0, 0])
             {
                 GL.BufferData(BufferTarget.ShaderStorageBuffer, compShaderDataOut.Length * sizeof(Field2D), (IntPtr)ptr, BufferUsageHint.DynamicRead);
             }
@@ -242,13 +228,24 @@ public class Window : GameWindow
         GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssbo2);
         unsafe
         {
-            fixed (int* ptr2 = &compShaderMeshData[0,0])
+            fixed (int* ptr2 = &compShaderMeshData[0, 0])
             {
                 GL.BufferData(BufferTarget.ShaderStorageBuffer, compShaderMeshData.Length * sizeof(int), (IntPtr)ptr2, BufferUsageHint.DynamicRead);
                 GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 4, ssbo2);
                 GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
             }
         }
+
+        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssbo3);
+        unsafe
+        {
+            fixed (Field2D* ptr3 = &compShaderDataIn[0, 0])
+            {
+                GL.BufferData(BufferTarget.ShaderStorageBuffer, compShaderDataOut.Length * sizeof(Field2D), (IntPtr)ptr3, BufferUsageHint.DynamicRead);
+            }
+        }
+        GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 6, ssbo3);
+        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
 
         if (debugSSBOEnabled)
         {
@@ -263,7 +260,7 @@ public class Window : GameWindow
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 5, ssboDebug);
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
         }
-        
+
         vertexBufferObject = GL.GenBuffer();
 
         vertexArrayObject = GL.GenVertexArray();
@@ -281,7 +278,7 @@ public class Window : GameWindow
         GL.BindTexture(TextureTarget.Texture2D, textureHandle);
         GL.UseProgram(shader.handle);
         GL.Uniform1(GL.GetUniformLocation(shader.handle, "texture1"), 1);
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb32f, gWidth, gHeight, 0, PixelFormat.Rgb,PixelType.Float, textureData);
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb32f, gWidth, gHeight, 0, PixelFormat.Rgb, PixelType.Float, textureData);
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
@@ -312,7 +309,7 @@ public class Window : GameWindow
         GL.Clear(ClearBufferMask.ColorBufferBit);
         if (prevMousePos != MousePosition)
         {
-            Field2D mouseCell = compShaderDataOut[Math.Clamp((int)(MousePosition.X * ((float)gWidth / ClientSize.X)),0,gWidth-1), Math.Clamp(gHeight-(int)(MousePosition.Y * ((float)gHeight / ClientSize.Y)),0,gHeight-1)];
+            Field2D mouseCell = compShaderDataOut[Math.Clamp((int)(MousePosition.X * ((float)gWidth / ClientSize.X)), 0, gWidth - 1), Math.Clamp(gHeight - (int)(MousePosition.Y * ((float)gHeight / ClientSize.Y)), 0, gHeight - 1)];
             Console.WriteLine("d:" + mouseCell.d + " u:" + mouseCell.u + " v:" + mouseCell.v + " E:" + mouseCell.E);
             prevMousePos = MousePosition;
         }
@@ -347,8 +344,7 @@ public class Window : GameWindow
                 }
             }
             int block_index = GL.GetProgramResourceIndex(computeShader.handle, ProgramInterface.ShaderStorageBlock, "shader_data");
-            int ssbo_binding_point_index = 2;
-            GL.ShaderStorageBlockBinding(computeShader.handle, block_index, ssbo_binding_point_index);
+            GL.ShaderStorageBlockBinding(computeShader.handle, block_index, 2);
             computeShader.Use();
             GL.DispatchCompute(gWidth, gHeight, 1);
             GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
@@ -362,6 +358,16 @@ public class Window : GameWindow
                     fixed (void* dataPtr2 = &compShaderDataIn[0, 0])
                     {
                         System.Buffer.MemoryCopy(ptr1.ToPointer(), dataPtr, compShaderDataOut.Length * sizeof(Field2D), compShaderDataOut.Length * sizeof(Field2D));
+                        GL.UnmapBuffer(BufferTarget.ShaderStorageBuffer);
+                        int block_index1 = GL.GetProgramResourceIndex(computeShader.handle, ProgramInterface.ShaderStorageBlock, "out_data");
+                        GL.ShaderStorageBlockBinding(computeShader.handle, block_index1, 3);
+
+                        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssbo3);
+                        IntPtr ptr5 = GL.MapBuffer(BufferTarget.ShaderStorageBuffer, BufferAccess.WriteOnly);
+                        System.Buffer.MemoryCopy(dataPtr2, ptr5.ToPointer(), compShaderDataOut.Length * sizeof(Field2D), compShaderDataOut.Length * sizeof(Field2D));
+                        GL.UnmapBuffer(BufferTarget.ShaderStorageBuffer);
+                        int block_index4 = GL.GetProgramResourceIndex(computeShader.handle, ProgramInterface.ShaderStorageBlock, "prevData");
+                        GL.ShaderStorageBlockBinding(computeShader.handle, block_index4, 6);
                         System.Buffer.MemoryCopy(dataPtr, dataPtr2, compShaderDataOut.Length * sizeof(Field2D), compShaderDataOut.Length * sizeof(Field2D));
                     }
                 }
@@ -379,6 +385,8 @@ public class Window : GameWindow
                         GL.UnmapBuffer(BufferTarget.ShaderStorageBuffer);
                     }
                 }
+                int block_index3 = GL.GetProgramResourceIndex(computeShader.handle, ProgramInterface.ShaderStorageBlock, "mesh_data");
+                GL.ShaderStorageBlockBinding(computeShader.handle, block_index3, 4);
                 updateMesh = false;
             }
 
@@ -394,9 +402,11 @@ public class Window : GameWindow
                     }
                 }
                 GL.UnmapBuffer(BufferTarget.ShaderStorageBuffer);
+                int block_index2 = GL.GetProgramResourceIndex(computeShader.handle, ProgramInterface.ShaderStorageBlock, "out_debug");
+                GL.ShaderStorageBlockBinding(computeShader.handle, block_index2, 5);
             }
         }
-        
+
         shader.Use();
         GL.BindVertexArray(vertexArrayObject);
         GL.ActiveTexture(TextureUnit.Texture1);
@@ -405,6 +415,7 @@ public class Window : GameWindow
 
         SwapBuffers();
     }
+
     protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
     {
         base.OnFramebufferResize(e);
@@ -442,7 +453,8 @@ public class Window : GameWindow
                 if (simState == SimState.Paused)
                 {
                     simState = SimState.Run;
-                } else
+                }
+                else
                 {
                     simState = SimState.Paused;
                 }
