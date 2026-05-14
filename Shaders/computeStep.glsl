@@ -130,6 +130,14 @@ iDataGroup4 indices = iDataGroup4(coordToIndex(coords.x+1,coords.y),coordToIndex
 float BC(int valId, int iOffset, int jOffset) {
     uint newIndex = coordToIndex(int(clamp(i+iOffset,0,int(width-1))),int(clamp(j+jOffset,0,int(height-1))));
     bool objectFlag = false;
+    int dir;
+    if (iOffset != 0 && jOffset != 0) {
+        dir = 2;
+    } else if (iOffset != 0) {
+        dir = 0;
+    } else {
+        dir = 1;
+    }
     if (mesh[newIndex] == 1) {
         newIndex = coordToIndex(i,j);
         objectFlag = true;
@@ -139,11 +147,11 @@ float BC(int valId, int iOffset, int jOffset) {
             case 0:
                 return fields[newIndex].d;
             case 1:
-                return 0;
+                return (dir == 2 || dir == 0) ? 0 : fields[newIndex].u;
             case 2:
-                return 0;
+                return (dir == 2 || dir == 1) ? 0 : fields[newIndex].v;
             case 3:
-                return fields[newIndex].E - 0.5 * (fields[newIndex].u * fields[newIndex].u + fields[newIndex].v * fields[newIndex].v);
+                return fields[newIndex].E - 0.5 * (fields[newIndex].u * fields[newIndex].u + fields[newIndex].v * fields[newIndex].v) + 0.5 * (pow((dir == 2 || dir == 0) ? 0 : fields[newIndex].u,2) + pow((dir == 2 || dir == 1) ? 0 : fields[newIndex].v,2));
             case 4:
                 return fields[newIndex].S;
         }

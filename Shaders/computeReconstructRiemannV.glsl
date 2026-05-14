@@ -133,16 +133,24 @@ float BC(int valId, int I, int J, int iOffset, int jOffset) {
         newIndex = cellCoordToIndex(I,J);
         objectFlag = true;
     }
+    int dir;
+    if (iOffset != 0 && jOffset != 0) {
+        dir = 2;
+    } else if (iOffset != 0) {
+        dir = 0;
+    } else {
+        dir = 1;
+    }
     if (objectFlag) {
         switch (valId) {
             case 0:
                 return fields[newIndex].d;
             case 1:
-                return 0;
+                return (dir == 2 || dir == 0) ? 0 : fields[newIndex].u;
             case 2:
-                return 0;
+                return (dir == 2 || dir == 1) ? 0 : fields[newIndex].v;
             case 3:
-                return fields[newIndex].E - 0.5 * (fields[newIndex].u * fields[newIndex].u + fields[newIndex].v * fields[newIndex].v);
+                return fields[newIndex].E - 0.5 * (fields[newIndex].u * fields[newIndex].u + fields[newIndex].v * fields[newIndex].v) + 0.5 * (pow((dir == 2 || dir == 0) ? 0 : fields[newIndex].u,2) + pow((dir == 2 || dir == 1) ? 0 : fields[newIndex].v,2));
             case 4:
                 return fields[newIndex].S;
         }
@@ -345,9 +353,9 @@ float QUICKLIM(int valId, int dim, bool forwards) {
     float FH = QUICK(valId, dim, forwards);
     float r;
         if (dim==0) {
-        r = (BC(valId,I,J,0,0)-BC(valId,I,J,-1,0))/(BC(valId,I,J,1,0)-BC(valId,I,J,0,0)+0.1);
+        r = (BC(valId,I,J,0,0)-BC(valId,I,J,-1,0))/(BC(valId,I,J,1,0)-BC(valId,I,J,0,0)+0.000001);
     } else {
-        r = (BC(valId,I,J,0,0)-BC(valId,I,J,0,-1))/(BC(valId,I,J,0,1)-BC(valId,I,J,0,0)+0.1);
+        r = (BC(valId,I,J,0,0)-BC(valId,I,J,0,-1))/(BC(valId,I,J,0,1)-BC(valId,I,J,0,0)+0.000001);
     }
     return FL+0.5*vanLeer(r)*(FH-FL);
 }
@@ -401,9 +409,9 @@ float WENO(int valId, int dim, bool forwards) {
         float b32 = (3.0 * BC(valId,I,J,0,forwards?0:-1) - 4.0 * BC(valId,I,J,0,forwards?1:0) + BC(valId,I,J,0,forwards?2:1));
         b3 = (13.0/12.0) * b31*b31 + (1.0/4.0) * b32*b32;
     }
-    a1 = (1.0/(10.0 * (b1+0.1)*(b1+0.1)));
-    a2 = (6.0/(10.0 * (b2+0.1)*(b2+0.1)));
-    a3 = (3.0/(10.0 * (b3+0.1)*(b3+0.1)));
+    a1 = (1.0/(10.0 * (b1+0.1)*(b1+0.000001)));
+    a2 = (6.0/(10.0 * (b2+0.1)*(b2+0.000001)));
+    a3 = (3.0/(10.0 * (b3+0.1)*(b3+0.000001)));
     float aSUM = a1+a2+a3;
 
     w1 = a1/aSUM;
@@ -425,15 +433,15 @@ float WENOLIM(int valId, int dim, bool forwards) {
     float FH = WENO(valId, dim, forwards);
     float r;
         if (dim==0) {
-        r = (BC(valId,I,J,0,0)-BC(valId,I,J,-1,0))/(BC(valId,I,J,1,0)-BC(valId,I,J,0,0)+0.1);
+        r = (BC(valId,I,J,0,0)-BC(valId,I,J,-1,0))/(BC(valId,I,J,1,0)-BC(valId,I,J,0,0)+0.000001);
     } else {
-        r = (BC(valId,I,J,0,0)-BC(valId,I,J,0,-1))/(BC(valId,I,J,0,1)-BC(valId,I,J,0,0)+0.1);
+        r = (BC(valId,I,J,0,0)-BC(valId,I,J,0,-1))/(BC(valId,I,J,0,1)-BC(valId,I,J,0,0)+0.000001);
     }
     return FL+vanLeer(r)*(FH-FL);
 }
 
 float Scheme(int valId, int dim, bool forwards) {
-    return SOULIM(valId,dim,forwards);
+    return WENO(valId,dim,forwards);
 }
 
 void main() {
@@ -453,11 +461,11 @@ void main() {
     float RCXF = 0.5 * (dt/BC(0,0,0) + dt/BC(0,1,0))*((pr-pc)/dx);
     float RCXB = 0.5 * (dt/BC(0,0,0) + dt/BC(0,-1,0))*((pc-pl)/dx);
 
-    float uR = Scheme(1,0,false) + rhieChowToggle * RCXF;
-    float uL = Scheme(1,0,true) + rhieChowToggle * RCXB;
+    float uR = Scheme(1,0,false) + rhieChowToggle;// * RCXF;
+    float uL = Scheme(1,0,true) + rhieChowToggle;// * RCXB;
 
-    float vR = Scheme(2,0,false) + rhieChowToggle * RCXF;
-    float vL = Scheme(2,0,true) + rhieChowToggle * RCXB;
+    float vR = Scheme(2,0,false) + rhieChowToggle;
+    float vL = Scheme(2,0,true) + rhieChowToggle;
 
     float ER = Scheme(3,0,false);
     float EL = Scheme(3,0,true);
@@ -510,7 +518,7 @@ void main() {
 
         float uML = dML * S_M;
         float vML = dML * vL;
-        float EML = dML * (EL/dL + (S_M-uL)*(S_M+pL/(dL*(S_L-uL))));
+        float EML = dML * (EL + (S_M-uL)*(S_M+pL/(dL*(S_L-uL))));
         float sML = dML * sL;
 
         xFaceFlux[faceIndex].d = dFL + S_L*(dML-dL);
@@ -523,7 +531,7 @@ void main() {
 
         float uMR = dMR * S_M;
         float vMR = dMR * vR;
-        float EMR = dMR * (ER/dR + (S_M-uR)*(S_M+pR/(dR*(S_R-uR))));
+        float EMR = dMR * (ER + (S_M-uR)*(S_M+pR/(dR*(S_R-uR))));
         float sMR = dMR * sR;
 
         xFaceFlux[faceIndex].d = dFR + S_R*(dMR-dR);
